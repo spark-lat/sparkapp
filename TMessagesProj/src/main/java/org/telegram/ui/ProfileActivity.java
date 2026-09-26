@@ -252,6 +252,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
     private RecyclerListView listView;
     private RecyclerListView searchListView;
+    private final static int osint_search_profile = 100501;
     private LinearLayoutManager layoutManager;
     private ListAdapter listAdapter;
     private SearchAdapter searchAdapter;
