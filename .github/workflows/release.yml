@@ -39,7 +39,16 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build Debug APK
-        run: ./gradlew assembleAfatDebug --no-daemon --stacktrace
+        env:
+          APP_ID: "2040"
+          APP_HASH: "b18441a1ff607e10a989891a5462e627"
+          AYU_SYNC_URL: "https://example.com"
+          AYU_SYNC_API_KEY: "dummy"
+        run: |
+          ./gradlew assembleAfatDebug \
+            -PAPP_ID=2040 \
+            -PAPP_HASH=b18441a1ff607e10a989891a5462e627 \
+            --no-daemon --stacktrace
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
