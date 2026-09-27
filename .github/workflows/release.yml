@@ -15,25 +15,44 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Discard broken edits and clean build.gradle
+      - name: Reset local changes in repo
         run: |
-          # Возвращаем чистый исходный файл TMessagesProj/build.gradle
-          git checkout TMessagesProj/build.gradle || true
+          git checkout -- . || true
 
-      - name: Create API_KEYS file
+      - name: Setup Keystore and API_KEYS
         run: |
-          # Создаем файл API_KEYS, который ждет оригинальный build.gradle
+          # 1. Создаем папку для ключа
+          mkdir -p TMessagesProj/config
+
+          # 2. Генерируем тестовый keystore для сборки
+          keytool -genkey -v -keystore TMessagesProj/config/extera.jks \
+            -alias whitegram -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass password -keypass password \
+            -dname "CN=Whitegram, OU=Dev, O=Whitegram, L=City, S=State, C=US"
+
+          # 3. Создаем официальный файл API_KEYS, который требует AyuGram
           cat << 'EOF' > API_KEYS
-          APP_ID=39730387
-          APP_HASH=a090390a06b85e20b1fe58e154dad80a
-          MAPS_V2_API=
+          APP_ID = 39730387
+          APP_HASH = "a090390a06b85e20b1fe58e154dad80a"
+          MAPS_V2_API = "abcdef12345678"
+          SIGNING_KEY_PASSWORD = password
+          SIGNING_KEY_ALIAS = whitegram
+          SIGNING_KEY_STORE_PASSWORD = password
           EOF
-          cp API_KEYS TMessagesProj/API_KEYS || true
+
+          # Копируем API_KEYS во все места, где его ищет скрипт
+          cp API_KEYS TMessagesProj/API_KEYS
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
+
+      - name: Apply App Features Patch
+        run: |
+          if [ -f patch.py ]; then
+            python patch.py
+          fi
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
