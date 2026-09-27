@@ -15,7 +15,7 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Reset local changes in repo
+      - name: Reset local repo
         run: |
           git checkout -- . || true
 
@@ -59,14 +59,19 @@ jobs:
       - name: Make Gradlew Executable
         run: chmod +x gradlew
 
-      - name: Build APK
+      - name: Fast Build ARM64 APK
         run: |
           ./gradlew assembleAfatRelease \
+            -PabiList=arm64-v8a \
             -x lint \
             -x test \
             -PbuildServer=true \
             --no-daemon \
-            --stacktrace
+            --stacktrace || {
+              echo "=== ОШИБКА КОМПИЛЯТОРА JAVAC НАЙДЕНА ТУТ ==="
+              find . -name "*.log" -exec grep -Hn "error:" {} + 2>/dev/null || true
+              exit 1
+            }
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
