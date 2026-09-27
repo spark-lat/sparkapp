@@ -5,6 +5,16 @@ on:
     branches: [ rewrite, master, main ]
   workflow_dispatch:
 
+env:
+  APP_ID: "39730387"
+  APP_HASH: "a090390a06b85e20b1fe58e154dad80a"
+  API_ID: "39730387"
+  API_HASH: "a090390a06b85e20b1fe58e154dad80a"
+  AYU_SYNC_URL: "https://example.com"
+  AYU_SYNC_API_KEY: "dummy"
+  AYU_SYNC_PASSWORD: "dummy"
+  BOT_TOKEN: "dummy"
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -20,26 +30,23 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Print and Fix build.gradle
+      - name: Setup Properties Files with Your Keys
         run: |
-          echo "=== СТРОКИ 65-85 ИЗ TMessagesProj/build.gradle ==="
-          sed -n '65,85p' TMessagesProj/build.gradle || true
-          
-          # Заменяем обращения к отсутствующим переменным на пустые строки в build.gradle
-          python3 -c "
-          path = 'TMessagesProj/build.gradle'
-          with open(path, 'r', encoding='utf-8') as f:
-              lines = f.readlines()
-          new_lines = []
-          for line in lines:
-              # Если строка содержит buildConfigField и может передавать null, защищаем ее
-              if 'buildConfigField' in line and 'null' not in line:
-                  # Предотвращаем передачу null значения в buildConfigField
-                  line = line.replace('project.hasProperty', 'true || project.hasProperty')
-              new_lines.append(line)
-          with open(path, 'w', encoding='utf-8') as f:
-              f.writelines(new_lines)
-          "
+          mkdir -p TMessagesProj
+          cat << 'EOF' > local.properties
+          sdk.dir=/usr/local/lib/android/sdk
+          APP_ID=39730387
+          APP_HASH=a090390a06b85e20b1fe58e154dad80a
+          API_ID=39730387
+          API_HASH=a090390a06b85e20b1fe58e154dad80a
+          AYU_SYNC_URL=https://example.com
+          AYU_SYNC_API_KEY=dummy
+          AYU_SYNC_PASSWORD=dummy
+          BOT_TOKEN=dummy
+          EOF
+          cp local.properties TMessagesProj/local.properties
+          cp local.properties gradle.properties
+          cp local.properties TMessagesProj/gradle.properties
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -54,7 +61,16 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build Debug APK
-        run: ./gradlew assembleAfatDebug -x lint -x test --no-daemon --stacktrace
+        run: |
+          ./gradlew assembleAfatDebug \
+            -PAPP_ID=39730387 \
+            -PAPP_HASH=a090390a06b85e20b1fe58e154dad80a \
+            -PAPI_ID=39730387 \
+            -PAPI_HASH=a090390a06b85e20b1fe58e154dad80a \
+            -PAYU_SYNC_URL="https://example.com" \
+            -PAYU_SYNC_API_KEY="dummy" \
+            -x lint -x test \
+            --no-daemon --stacktrace
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
