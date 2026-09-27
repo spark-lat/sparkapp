@@ -52,12 +52,12 @@ jobs:
       - name: Make Gradlew Executable
         run: chmod +x gradlew
 
-      - name: Build Debug APK
+      - name: Build APK
         env:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m"
           ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/21.4.7075529
         run: |
-          ./gradlew assembleAfatDebug \
+          ./gradlew :TMessagesProj:assembleDebug \
             -x lint \
             -x test \
             -PbuildServer=true \
