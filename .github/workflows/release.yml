@@ -24,35 +24,30 @@ jobs:
           sudo mv apktool apktool.jar /usr/local/bin/
           curl -sL https://github.com/patrickfav/uber-apk-signer/releases/download/v1.3.0/uber-apk-signer-1.3.0.jar -o uber-apk-signer.jar
 
-      - name: Download Official AyuGram Base APK
+      - name: Download AyuGram APK
         run: |
+          echo "Скачиваем рабочий APK AyuGram..."
           python3 -c '
-          import urllib.request, json, os
+          import urllib.request, re
 
-          req = urllib.request.Request(
-              "https://api.github.com/repos/AyuGram/AyuGramAndroid/releases/latest",
-              headers={"User-Agent": "Mozilla/5.0"}
-          )
+          headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
           try:
-              with urllib.request.urlopen(req) as resp:
-                  data = json.loads(resp.read().decode("utf-8"))
-                  url = ""
-                  for asset in data.get("assets", []):
-                      name = asset.get("name", "")
-                      if name.endswith(".apk") and "arm64" in name:
-                          url = asset.get("browser_download_url")
-                          break
-                  if not url:
-                      for asset in data.get("assets", []):
-                          if asset.get("name", "").endswith(".apk"):
-                              url = asset.get("browser_download_url")
-                              break
-          except Exception as e:
-              print("Fallback to direct release asset...", e)
-              url = "https://github.com/AyuGram/AyuGramAndroid/releases/download/v10.10.1/AyuGram4A-arm64-v8a-release.apk"
+              # Получаем прямую ссылку на последнюю сборку с зеркала Uptodown
+              page_url = "https://ayugram.en.uptodown.com/android/download"
+              req = urllib.request.Request(page_url, headers=headers)
+              html = urllib.request.urlopen(req).read().decode("utf-8")
+              match = re.search(r"data-url=\"(https://dw\.uptodown\.com/[^\"]+)\"", html)
+              if match:
+                  download_url = match.group(1)
+              else:
+                  download_url = "https://dw.uptodown.com/dwn/c5xG7m7u7z"
+          except Exception:
+              download_url = "https://dw.uptodown.com/dwn/c5xG7m7u7z"
 
-          print(f"Downloading from: {url}")
-          urllib.request.urlretrieve(url, "base.apk")
+          print(f"URL: {download_url}")
+          req_dl = urllib.request.Request(download_url, headers=headers)
+          with urllib.request.urlopen(req_dl) as resp, open("base.apk", "wb") as out:
+              out.write(resp.read())
           '
           ls -lh base.apk
 
@@ -67,11 +62,12 @@ jobs:
           new_hash = "a090390a06b85e20b1fe58e154dad80a"
           hex_id = hex(int(new_id))
 
+          # Вшиваем APP_ID и APP_HASH в байткод smali
           for root, dirs, files in os.walk("unpacked_apk"):
               for file in files:
                   if file.endswith(".smali") and "BuildVars" in file:
                       path = os.path.join(root, file)
-                      print(f"Патчим файл: {path}")
+                      print(f"Патчим BuildVars: {path}")
                       with open(path, "r", encoding="utf-8") as f:
                           content = f.read()
 
@@ -82,14 +78,17 @@ jobs:
                       with open(path, "w", encoding="utf-8") as f:
                           f.write(content)
 
-          res_file = "unpacked_apk/res/values/strings.xml"
-          if os.path.exists(res_file):
-              with open(res_file, "r", encoding="utf-8") as f:
-                  data = f.read()
-              data = re.sub(r"(<string name=\"app_id\">).*?(</string>)", rf"\g<1>{new_id}\2", data)
-              data = re.sub(r"(<string name=\"app_hash\">).*?(</string>)", rf"\g<1>{new_hash}\2", data)
-              with open(res_file, "w", encoding="utf-8") as f:
-                  f.write(data)
+          # Вшиваем в строковые ресурсы strings.xml
+          for root, dirs, files in os.walk("unpacked_apk/res"):
+              if "strings.xml" in files:
+                  res_file = os.path.join(root, "strings.xml")
+                  with open(res_file, "r", encoding="utf-8") as f:
+                      data = f.read()
+                  data = re.sub(r"(<string name=\"app_id\">).*?(</string>)", rf"\g<1>{new_id}\2", data)
+                  data = re.sub(r"(<string name=\"app_hash\">).*?(</string>)", rf"\g<1>{new_hash}\2", data)
+                  with open(res_file, "w", encoding="utf-8") as f:
+                      f.write(data)
+          print("Ключи успешно внедрены!")
           '
 
       - name: Rebuild and Sign APK
