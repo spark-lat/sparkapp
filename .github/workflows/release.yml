@@ -37,11 +37,22 @@ jobs:
 
       - name: Setup Build Configuration
         run: |
-          echo "sdk.dir=$ANDROID_HOME" > local.properties
-          echo "APP_ID=2040" >> local.properties
-          echo "APP_HASH=b18441a1ff607e10a989891a5462e627" >> local.properties
-          echo "AYU_SYNC_URL=https://example.com" >> local.properties
-          echo "AYU_SYNC_API_KEY=dummy" >> local.properties
+          cat << 'EOF' > local.properties
+          sdk.dir=/usr/local/lib/android/sdk
+          APP_ID=2040
+          APP_HASH=b18441a1ff607e10a989891a5462e627
+          AYU_SYNC_URL=https://example.com
+          AYU_SYNC_API_KEY=dummy
+          EOF
+          cp local.properties TMessagesProj/local.properties || true
+
+          cat << 'EOF' >> gradle.properties
+          APP_ID=2040
+          APP_HASH=b18441a1ff607e10a989891a5462e627
+          AYU_SYNC_URL=https://example.com
+          AYU_SYNC_API_KEY=dummy
+          EOF
+          cp gradle.properties TMessagesProj/gradle.properties || true
 
       - name: Make Gradlew Executable
         run: chmod +x gradlew
@@ -52,7 +63,7 @@ jobs:
           APP_HASH: "b18441a1ff607e10a989891a5462e627"
           AYU_SYNC_URL: "https://example.com"
           AYU_SYNC_API_KEY: "dummy"
-        run: ./gradlew assembleAfatDebug --no-daemon --stacktrace
+        run: ./gradlew assembleAfatDebug -PAPP_ID=2040 -PAPP_HASH=b18441a1ff607e10a989891a5462e627 --no-daemon --stacktrace
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
