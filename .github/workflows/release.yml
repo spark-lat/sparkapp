@@ -54,13 +54,13 @@ jobs:
 
       - name: Build APK
         env:
-          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m"
-          ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/21.4.7075529
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs='-Xmx6144m -Xss16m -XX:MaxMetaspaceSize=1024m'"
         run: |
-          ./gradlew :TMessagesProj:assembleDebug \
+          ./gradlew :TMessagesProj:assembleAfatDebug \
             -x lint \
             -x test \
             -PbuildServer=true \
+            -PabiList=arm64-v8a \
             --no-daemon
 
       - name: Upload APK Artifact
